@@ -1,30 +1,29 @@
-// Per-CPU state
-struct cpu {
-  uchar apicid;                // Local APIC ID
-  struct context *scheduler;   // swtch() here to enter scheduler
-  struct taskstate ts;         // Used by x86 to find stack for interrupt
-  struct segdesc gdt[NSEGS];   // x86 global descriptor table
-  volatile uint started;       // Has the CPU started?
-  int ncli;                    // Depth of pushcli nesting.
-  int intena;                  // Were interrupts enabled before pushcli?
-  struct proc *proc;           // The process running on this cpu or null
+
+#define MAX_LOCKS 7           
+#define LOW_PRIORITY 1          
+#define HIGH_PRIORITY 10         
+#define PROC_TRACE_BUF_SIZE 4096 
+#define TRACE_BUF_SIZE 4096      
+
+struct cpu
+{
+  uchar apicid;              
+  struct context *scheduler; 
+  struct taskstate ts;       
+  struct segdesc gdt[NSEGS];
+  volatile uint started;     
+  int ncli;                  
+  int intena;                
+  struct proc *proc;         
 };
 
+int setnice(int pid, int value);
 extern struct cpu cpus[NCPU];
 extern int ncpu;
+void init_locks(void); 
 
-//PAGEBREAK: 17
-// Saved registers for kernel context switches.
-// Don't need to save all the segment registers (%cs, etc),
-// because they are constant across kernel contexts.
-// Don't need to save %eax, %ecx, %edx, because the
-// x86 convention is that the caller has saved them.
-// Contexts are stored at the bottom of the stack they
-// describe; the stack pointer is the address of the context.
-// The layout of the context matches the layout of the stack in swtch.S
-// at the "Switch stacks" comment. Switch doesn't save eip explicitly,
-// but it is on the stack and allocproc() manipulates it.
-struct context {
+struct context
+{
   uint edi;
   uint esi;
   uint ebx;
@@ -32,27 +31,52 @@ struct context {
   uint eip;
 };
 
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-
-// Per-process state
-struct proc {
-  uint sz;                     // Size of process memory (bytes)
-  pde_t* pgdir;                // Page table
-  char *kstack;                // Bottom of kernel stack for this process
-  enum procstate state;        // Process state
-  int pid;                     // Process ID
-  struct proc *parent;         // Parent process
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process
-  void *chan;                  // If non-zero, sleeping on chan
-  int killed;                  // If non-zero, have been killed
-  struct file *ofile[NOFILE];  // Open files
-  struct inode *cwd;           // Current directory
-  char name[16];               // Process name (debugging)
+enum procstate
+{
+  UNUSED,
+  EMBRYO,
+  SLEEPING,
+  RUNNABLE,
+  RUNNING,
+  ZOMBIE
 };
 
-// Process memory is laid out contiguously, low addresses first:
-//   text
-//   original data and bss
-//   fixed-size stack
-//   expandable heap
+struct proc
+{
+  uint sz;                    
+  pde_t *pgdir;              
+  char *kstack;              
+  enum procstate state;       
+  int pid;                   
+  struct proc *parent;     
+  struct trapframe *tf;
+  struct context *context; 
+  void *chan;                 
+  int killed;                
+  struct file *ofile[NOFILE];
+  struct inode *cwd;          
+  char name[16];              
+  int nice;                  
+  int original_nice;          
+  int has_inherited;         
+
+  int priority;
+  int original_priority; 
+  int tracing; 
+  char trace_buf[TRACE_BUF_SIZE];           
+  char proc_trace_buf[PROC_TRACE_BUF_SIZE]; 
+  int trace_buf_index;                     
+  int filtering;                           
+  char filter_syscall[16];                 
+  int success_only;                        
+  int fail_only;                          
+};
+
+
+struct lock_t;
+
+void init_locks(void);
+struct lock_t *get_lock(int id);
+void acquire_lock(struct lock_t *lk);
+void release_lock(struct lock_t *lk);
+
