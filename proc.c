@@ -1,5 +1,4 @@
 #include "types.h"
-// #include "user.h" 
 #include "defs.h"
 #include "param.h"
 #include "memlayout.h"
@@ -8,7 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
-extern uint ticks; // extra credit-1
+extern uint ticks; 
 
 struct
 {
@@ -20,10 +19,10 @@ struct
 // Define struct priority_lock
 struct priority_lock
 {
-  int id;                  // Lock identifier
-  int locked;              // Lock status (0: unlocked, 1: locked)
-  int owner_pid;           // PID of the process holding the lock
-  int owner_original_nice; // Original priority of the owner
+  int id;                  
+  int locked;              
+  int owner_pid;           
+  int owner_original_nice;
 };
 
 // project 2.4
@@ -37,19 +36,16 @@ struct trace_event
 
 
 
-// extra credit-1
 struct lock_t
 {
-  int locked;         // Is the lock held?
-  int id;             // Lock identifier (1-7)
-  struct proc *owner; // Process holding the lock
-  struct spinlock lk; // Spinlock protecting this lock
+  int locked;         
+  int id;             
+  struct proc *owner; 
+  struct spinlock lk; 
 };
-// extra credit-1
 
-// Declare the locks array
-// struct priority_lock locks[MAX_LOCKS]; ///if extra credit-1 not works
-struct lock_t locks[MAX_LOCKS]; // extra credit-1
+
+struct lock_t locks[MAX_LOCKS]; 
 
 
 static struct proc *initproc;
@@ -71,8 +67,6 @@ int cpuid()
   return mycpu() - cpus;
 }
 
-// Must be called with interrupts disabled to avoid the caller being
-// rescheduled between reading lapicid and running through the loop.
 struct cpu *
 mycpu(void)
 {
@@ -92,8 +86,7 @@ mycpu(void)
   panic("unknown apicid\n");
 }
 
-// Disable interrupts so that we are not rescheduled
-// while reading proc from the cpu structure
+
 struct proc *
 myproc(void)
 {
@@ -106,11 +99,7 @@ myproc(void)
   return p;
 }
 
-// PAGEBREAK: 32
-//  Look in the process table for an UNUSED proc.
-//  If found, change state to EMBRYO and initialize
-//  state required to run in the kernel.
-//  Otherwise return 0.
+
 static struct proc *
 allocproc(void)
 {
@@ -130,19 +119,17 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->nice = 3;
-  // // extra credit-1
-  p->priority = 5; // Default priority
+  
+  p->priority = 5;
   p->original_priority = 0;
  
-
-  // project
-  p->tracing = 0;                               // Initialize tracing flag
-  p->trace_buf_index = 0;                       // project 2.6
-  memset(p->trace_buf, 0, PROC_TRACE_BUF_SIZE); // project 2.6
-  p->filtering = 0;                             // project 3.1
-  p->filter_syscall[0] = '\0';                  // project 3.1
-  p->success_only = 0;                          // project 3.2
-  p->fail_only = 0;                             // project 3.3
+  p->tracing = 0;                               
+  p->trace_buf_index = 0;                       
+  memset(p->trace_buf, 0, PROC_TRACE_BUF_SIZE); 
+  p->filtering = 0;                             
+  p->filter_syscall[0] = '\0';                  
+  p->success_only = 0;                          
+  p->fail_only = 0;                             
   
 
   release(&ptable.lock);
@@ -159,8 +146,7 @@ found:
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe *)sp;
 
-  // Set up new context to start executing at forkret,
-  // which returns to trapret.
+ 
   sp -= 4;
   *(uint *)sp = (uint)trapret;
 
@@ -172,14 +158,13 @@ found:
   return p;
 }
 
-// PAGEBREAK: 32
-//  Set up first user process.
+
 void userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
-  init_locks(); // extra credit-1
+  init_locks(); 
   p = allocproc();
 
   initproc = p;
@@ -194,7 +179,7 @@ void userinit(void)
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE;
-  p->tf->eip = 0; // beginning of initcode.S
+  p->tf->eip = 0; 
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
@@ -207,8 +192,7 @@ void userinit(void)
   release(&ptable.lock);
 }
 
-// Grow current process's memory by n bytes.
-// Return 0 on success, -1 on failure.
+
 int growproc(int n)
 {
   uint sz;
@@ -230,9 +214,7 @@ int growproc(int n)
   return 0;
 }
 
-// Create a new process copying p as the parent.
-// Sets up stack to return as if from system call.
-// Caller must set state of returned proc to RUNNABLE.
+
 int fork(void)
 {
   int i, pid;
@@ -282,9 +264,6 @@ int fork(void)
   return pid;
 }
 
-// Exit the current process.  Does not return.
-// An exited process remains in the zombie state
-// until its parent calls wait() to find out it exited.
 void exit(void)
 {
   struct proc *curproc = myproc();
@@ -332,8 +311,7 @@ void exit(void)
   panic("zombie exit");
 }
 
-// Wait for a child process to exit and return its pid.
-// Return -1 if this process has no children.
+
 int wait(void)
 {
   struct proc *p;
@@ -486,19 +464,15 @@ void forkret(void)
 
   if (first)
   {
-    // Some initialization functions must be run in the context
-    // of a regular process (e.g., they call sleep), and thus cannot
-    // be run from main().
+    
     first = 0;
     iinit(ROOTDEV);
     initlog(ROOTDEV);
   }
 
-  // Return to "caller", actually trapret (see allocproc).
 }
 
-// Atomically release lock and sleep on chan.
-// Reacquires lock when awakened.
+
 void sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
@@ -532,9 +506,7 @@ void sleep(void *chan, struct spinlock *lk)
   }
 }
 
-// PAGEBREAK!
-//  Wake up all processes sleeping on chan.
-//  The ptable lock must be held.
+
 static void
 wakeup1(void *chan)
 {
@@ -553,9 +525,7 @@ void wakeup(void *chan)
   release(&ptable.lock);
 }
 
-// Kill the process with the given pid.
-// Process won't exit until it returns
-// to user space (see trap in trap.c).
+
 int kill(int pid)
 {
   struct proc *p;
@@ -713,4 +683,3 @@ void release_lock(struct lock_t *lk)
   wakeup(lk);
   release(&lk->lk);
 }
-// // extra credit-1
