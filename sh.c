@@ -90,11 +90,10 @@ char *syscall_name[] = {
     "mkdir",
     "close",
     "trace",
-    // Add other syscalls as needed
 };
-// project 3.1
 
-int fork1(void); // Fork but panics on failure.
+
+int fork1(void); 
 void panic(char *);
 struct cmd *parsecmd(char *);
 
@@ -220,11 +219,10 @@ int main(void)
 {
   static char buf[100];
 
-  static char next_filter[16]; // project 3.1
+  static char next_filter[16]; 
   int fd;
-  int tracing = 0; // project
+  int tracing = 0; 
 
-  // Ensure that three file descriptors are open.
   while ((fd = open("console", O_RDWR)) >= 0)
   {
     if (fd >= 3)
@@ -248,7 +246,6 @@ int main(void)
     // project
     else if (strncmp(buf, "strace run ", 11) == 0)
     {
-      // Handle 'strace run <command>'
       if (fork1() == 0)
       {
         trace(1);                   // Enable tracing in the child process
@@ -270,7 +267,7 @@ int main(void)
     
     else if (strncmp(buf, "strace -s ", 10) == 0)
     {
-      char *p = buf + 9; // 's'(0) 't'(1) 'r'(2) 'a'(3) 'c'(4) 'e'(5) ' '(6) '-'(7) 's'(8) ' '(9)
+      char *p = buf + 9; 
       
       int len = strlen(p);
       if (len > 0 && p[len - 1] == '\n')
@@ -343,8 +340,7 @@ int main(void)
       mysafestrcpy(next_filter, p, sizeof(next_filter));
       continue;
     }
-    // project 3.1
-    // project 3.1
+   
     if (next_filter[0] != '\0')
     {
       int pid = fork1();
@@ -454,8 +450,7 @@ backcmd(struct cmd *subcmd)
   cmd->cmd = subcmd;
   return (struct cmd *)cmd;
 }
-// PAGEBREAK!
-//  Parsing
+
 
 char whitespace[] = " \t\r\n\v";
 char symbols[] = "<|>&;()";
@@ -592,7 +587,7 @@ parseredirs(struct cmd *cmd, char **ps, char *es)
     case '>':
       cmd = redircmd(cmd, q, eq, O_WRONLY | O_CREATE, 1);
       break;
-    case '+': // >>
+    case '+':
       cmd = redircmd(cmd, q, eq, O_WRONLY | O_CREATE, 1);
       break;
     }
